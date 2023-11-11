@@ -1,0 +1,7 @@
+path: D:\Dokumenti\Python\Chess_Position_Vision\Dataset\corners\Exporded\
+train: 'train'
+val: 'val'
+ 
+# class names
+names: 
+  0: 'corner'

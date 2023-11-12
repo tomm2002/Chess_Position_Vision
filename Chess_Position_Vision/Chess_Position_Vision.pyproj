@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>b8310ad2-f507-4cd5-84a4-f4577af2258c</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Chess_Position_Vision.py</StartupFile>
+    <StartupFile>Model_Trainer.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -22,6 +22,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Chess_Position_Vision.py" />
+    <Compile Include="DataProcessor.py" />
+    <Compile Include="Model_Trainer.py" />
+    <Compile Include="PieceDetector.py" />
+    <Compile Include="SquareDetector.py" />
+    <Compile Include="VideoPhotoCapture.py" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

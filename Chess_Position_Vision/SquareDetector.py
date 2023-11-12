@@ -7,23 +7,46 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import cv2
 from PIL import Image, ImageDraw
-
+import numpy as np
 
 class SquareDetector():
     
     def __init__(self, model,  ):
         self.model = model
 
-        
+    def __calculate_the_4th_point(self):
+
+
+        # Assuming you have 3D coordinates of points A, B, and C
+        A = np.array([x_A, y_A, z_A])
+        B = np.array([x_B, y_B, z_B])
+        C = np.array([x_C, y_C, z_C])
+
+        # Calculate vectors AB and AC
+        AB = B - A
+        AC = C - A
+
+        # Cross product to find the normal vector of the plane
+        normal_vector = np.cross(AB, AC)
+
+        # Assuming the fourth point lies along the AB vector
+        D = B + AB
+
+        # Print the coordinates of point D
+        print("Coordinates of point D:", D)
+
     def get_corners_cordinates(self, image_path:str, confidance:float=0.5, imgsz:int=640)-> list:
+        
         results = self.model.predict(image_path, imgsz=640, conf=0.5)
         
         bboxes = []
         for result in results:
-            boxes_formats = result.boxes
+            bboxes_formats = result.boxes
 
-            for box in boxes_formats.xyxy: #there are difrent formats you can extract
-                bboxes.append(box)
+            for bbox in bboxes_formats.xyxy:
+                x_min, y_min, x_max, y_max = bbox
+                center_x, center_y = self.calculate_center(x_min.item(), y_min.item(), x_max.item(), y_max.item() )
+                bboxes.append([center_x, center_y])
 
         return bboxes 
     
@@ -46,7 +69,7 @@ class SquareDetector():
         # Draw each bounding box
         for bbox in bboxes:
             x_min, y_min, x_max, y_max = bbox
-            center_x, center_y = self.calculate_center(x_min.item(), y_min.item(), x_max.item(), y_max.item() )
+            center_x, center_y = self.calculate_center(x_min, y_min, x_max, y_max )
 
 
             draw.rectangle([x_min, y_min, x_max, y_max], outline=box_colour, width=box_width)
@@ -74,10 +97,14 @@ class SquareDetector():
 
 def main():
     
-    sq_detector = SquareDetector(model=YOLO("runs/detect/yolov8n_corners8/weights/best.pt"))
+    sq_detector = SquareDetector(model=YOLO("runs/detect/yolov8n_corners_epoch_10/weights/best.pt") ) 
     
-    bboxes = sq_detector.get_corners_cordinates(image_path='test2.jpg')
+    img_name = "1.jpg"
+    bboxes = sq_detector.get_corners_cordinates(image_path=img_name )
     sq_detector.draw_bboxes_and_points(image_path='test2.jpg', bboxes=bboxes)
+
+
+
 
 
 

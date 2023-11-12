@@ -1,4 +1,4 @@
-
+import numpy as np
 from cv2 import cuda
 from torch import device
 from ultralytics import YOLO
@@ -26,7 +26,7 @@ def train():
     # Load the model.
     model = YOLO('yolov8n.pt')
 
-    for num_of_epochs in range(15,55,5):
+    for num_of_epochs in range(30,55,5):
         print("___________________________________epoch:", num_of_epochs, "______________________________________")
         try:
             # Training.
@@ -65,36 +65,61 @@ def draw_bbox_with_center_on_image(image, bboxes, box_colour:str="red", box_widt
 
         x_min, y_min, x_max, y_max = box
         center_x, center_y = calculate_center(x_min.item(), y_min.item(), x_max.item(), y_max.item() )
-            
+        
         #draw
         draw.rectangle([x_min, y_min, x_max, y_max], outline=box_colour, width=box_width)
         
         draw.ellipse([center_x - point_size, center_y - point_size, center_x + point_size, center_y + point_size], fill=point_colour)
         
+    
     # Display the image with bounding boxes
     image.show()
     
+class model_tester():
+    def __init__(self, model):
+        self.model = model
+
+    def test_on_image(self, image_name:str):
+        
+        #results = model_trained.predict(source='test_image.jpg', line_thickness=1, conf=0.01, save_txt=False, save=False
+        results = self.model.predict(image_name, imgsz=640, conf=0.4)  # return a list of Results objects
+        # Load the original image
+        image = Image.open(image_name)
+    
+
+        # Iterate through the list of results and draw bounding boxes on the image
+        for result in results:
+            bounding_boxes = result.boxes  # Get the bounding boxes
+            draw_bbox_with_center_on_image(image=image, bboxes=bounding_boxes)       
+
 
 def test():
 
-    image_name = 'test2.jpg'
-    model_trained = YOLO("runs/detect/yolov8n_corners8/weights/best.pt")
 
-    #results = model_trained.predict(source='test_image.jpg', line_thickness=1, conf=0.01, save_txt=False, save=False
-    results = model_trained.predict(image_name, imgsz=640, conf=0.5)  # return a list of Results objects
-    # Load the original image
-    image = Image.open(image_name)
+    image_names = ['1.jpg', '2.jpg', '3.jpg', '4.jpg', '5.jpg', '6.jpg', '7.jpg', 'test1.jpg', 'test2.jpg', 'test3.jpg', 'test4.jpg', 'test5.jpg', 'test7.jpg']
     
+    for image in image_names:
+        
 
-    # Iterate through the list of results and draw bounding boxes on the image
-    for result in results:
-        bounding_boxes = result.boxes  # Get the bounding boxes
+    
+        model1 = model_tester(YOLO("runs/detect/yolov8n_corners_epoch_10/weights/best.pt"))
+        model2 = model_tester(YOLO("runs/detect/yolov8n_corners_epoch_10/weights/best.pt"))
+        model3 = model_tester(YOLO("runs/detect/yolov8n_corners_epoch_10/weights/best.pt"))
+    
+        model1.test_on_image(image)
+        model2.test_on_image(image)
+        model3.test_on_image(image)
+        
+    pass
 
-        draw_bbox_with_center_on_image(image=image, bboxes=bounding_boxes)
+
+
+
+
 
 
 
 if __name__ == "__main__":
 
-    train()
+    test()
 

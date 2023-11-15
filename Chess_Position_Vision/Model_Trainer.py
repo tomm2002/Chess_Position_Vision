@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import cv2
 from PIL import Image, ImageDraw
+from DataProcessor import main_augmentor
 
 def get_gpu_memory_info():
     if torch.cuda.is_available():
@@ -26,7 +27,7 @@ def train():
     # Load the model.
     model = YOLO('yolov8n.pt')
 
-    for num_of_epochs in range(30,55,5):
+    for num_of_epochs in range(1,30,5):
         print("___________________________________epoch:", num_of_epochs, "______________________________________")
         try:
             # Training.
@@ -35,7 +36,7 @@ def train():
                 imgsz=640,
                 epochs=num_of_epochs,
                 batch=4,
-                name='yolov8n_corners' + '_epoch_' + str(num_of_epochs),
+                name='yolov8n_corners' +'_fixesdataset_' + '_epoch_' + str(num_of_epochs),
                 plots=True,
             )
         except Exception as e:
@@ -121,5 +122,5 @@ def test():
 
 if __name__ == "__main__":
 
-    test()
+    train()
 

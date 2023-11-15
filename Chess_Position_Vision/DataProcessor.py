@@ -61,7 +61,7 @@ class DataAugmentor:
         """
         Returns array/list of file names. If .jpg is somehere in the name 
         """
-        print(images_path)
+
         return  [f for f in os.listdir(images_path) if '.jpg' in f]
     
     def __get_bboxes(self, labels_path:str, img_name:str)->list:
@@ -267,13 +267,11 @@ class DataAugmentor:
         
         print(f"Flipped images/bboxes from {input_dir} to {output_dir}")
         
-
-
-            
+       
         
 
     
-def main():
+def main_augmentor():
 
     INPUT_DIR = "D:\Dokumenti\Python\Diplomska\Dataset\Corners\Anoted"
     OUTPUT_DIR = "D:\Dokumenti\Python\Diplomska\Dataset\Corners\Augmeneted"
@@ -281,17 +279,17 @@ def main():
     
     augmentor = DataAugmentor()
     
-    # augmentor.copy_original_img_and_bboxes_to_output_dir(input_dir=INPUT_DIR, output_dir=OUTPUT_DIR)
+    augmentor.copy_original_img_and_bboxes_to_output_dir(input_dir=INPUT_DIR, output_dir=OUTPUT_DIR)
     
-    # augmentor.flip_imgbboxes(axis='horizontal', input_dir=OUTPUT_DIR, output_dir=OUTPUT_DIR)
-    # augmentor.flip_imgbboxes(axis='vertical', input_dir=OUTPUT_DIR, output_dir=OUTPUT_DIR)
-    # augmentor.rotate_imgbboxes(num_of_rotations=20, input_dir=OUTPUT_DIR, output_dir=OUTPUT_DIR)
+    augmentor.flip_imgbboxes(axis='horizontal', input_dir=OUTPUT_DIR, output_dir=OUTPUT_DIR)
+    augmentor.flip_imgbboxes(axis='vertical', input_dir=OUTPUT_DIR, output_dir=OUTPUT_DIR)
+    augmentor.rotate_imgbboxes(num_of_rotations=2, input_dir=OUTPUT_DIR, output_dir=OUTPUT_DIR)
     
     augmentor.apply_grayscale_to_all(OUTPUT_DIR)
 
-    # augmentor.export(input_dir=OUTPUT_DIR, export_dir=EXPORT_DIR, train_size=0.8, val_size=0.2, test_size=0.0)
+    augmentor.export(input_dir=OUTPUT_DIR, export_dir=EXPORT_DIR, train_size=0.8, val_size=0.2, test_size=0.0)
 
 
 
 if __name__ == "__main__":
-    main()
+    main_augmentor()

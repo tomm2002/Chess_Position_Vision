@@ -321,11 +321,11 @@ def main_augmentor():
     
     augmentor = DataAugmentor()
     
-    augmentor.split_roboflow_dataset(input_dir=roboflow_export_dir, export_dir=dataset_dir )
-    augmentor.copy_original_img_and_bboxes(input_dir=export_dir , output_dir=temporary_folder)
-    augmentor.flip_imgbboxes(axis='horizontal', input_dir=temporary_folder, output_dir=temporary_folder)
-    augmentor.flip_imgbboxes(axis='vertical', input_dir=temporary_folder, output_dir=temporary_folder)
-    augmentor.rotate_imgbboxes(num_of_rotations=2, input_dir=temporary_folder, output_dir=temporary_folder)
+    augmentor.split_roboflow_dataset(input_dir=ROBOFLOW_EXPORT_DIR, export_dir=DATASET_DIR )
+    augmentor.copy_original_img_and_bboxes(input_dir=EXPORT_DIR , output_dir=TEMPORARY_FOLDER)
+    augmentor.flip_imgbboxes(axis='horizontal', input_dir=TEMPORARY_FOLDER, output_dir=TEMPORARY_FOLDER)
+    augmentor.flip_imgbboxes(axis='vertical', input_dir=TEMPORARY_FOLDER, output_dir=TEMPORARY_FOLDER)
+    augmentor.rotate_imgbboxes(num_of_rotations=2, input_dir=TEMPORARY_FOLDER, output_dir=TEMPORARY_FOLDER)
     
 
     augmentor.export_augmented_to_dataset(input_dir=TEMPORARY_FOLDER, output_dir=EXPORT_DIR)

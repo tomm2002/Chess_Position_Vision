@@ -27,7 +27,7 @@ def train():
     # Load the model.
     model = YOLO('yolov8n.pt')
 
-    for num_of_epochs in range(1,30,5):
+    for num_of_epochs in range(10,30,5):
         print("___________________________________epoch:", num_of_epochs, "______________________________________")
         try:
             # Training.
@@ -103,13 +103,9 @@ def test():
         
 
     
-        model1 = model_tester(YOLO("runs/detect/yolov8n_corners_epoch_10/weights/best.pt"))
-        model2 = model_tester(YOLO("runs/detect/yolov8n_corners_epoch_10/weights/best.pt"))
-        model3 = model_tester(YOLO("runs/detect/yolov8n_corners_epoch_10/weights/best.pt"))
-    
+        model1 = model_tester(YOLO("runs/detect/yolov8n_corners_fixesdataset__epoch_1010/weights/best.pt"))
         model1.test_on_image(image)
-        model2.test_on_image(image)
-        model3.test_on_image(image)
+
         
     pass
 
@@ -122,5 +118,4 @@ def test():
 
 if __name__ == "__main__":
 
-    train()
-
+    test()

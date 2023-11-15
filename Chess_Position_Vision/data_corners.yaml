@@ -1,6 +1,7 @@
 path: D:\Dokumenti\Python\Diplomska\Dataset\Corners\Exporded
 train: 'train'
-val: 'val'
+val: 'valid'
+test: 'test'
  
 # class names
 names: 

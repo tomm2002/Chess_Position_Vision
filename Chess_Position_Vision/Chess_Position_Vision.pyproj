@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>b8310ad2-f507-4cd5-84a4-f4577af2258c</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>DataProcessor.py</StartupFile>
+    <StartupFile>Model_Trainer.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>

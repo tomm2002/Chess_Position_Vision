@@ -9,8 +9,18 @@ import shutil
 from sklearn.model_selection import train_test_split
 
 """
-TO DO:
-    -Make option to make dir if doesn't excist 
+INPUT_DIR -> Should be the zipped folder dowloaded from roboflow.
+Structure should look like:
+-INPUT_DIR
+        -train
+        -test
+        -valid
+        -other files(ignored)
+            
+OUTPUT_DIR -> meant to store the augmentated images. If need be, agumentations can be done on the previus agumentations
+    
+EXPORT_DIR -> A directory, where the train, test and valid images/bboxes will be combined. Becouse (recommended) we...
+...only augment train images, when using export direcotry where the valid and test images/bboxes are is needed (just INPUT_DIR)
 """
 
 class DataAugmentor:
@@ -42,20 +52,24 @@ class DataAugmentor:
         
         return x,y,w,h
     
-    def display_image_bboxes(self,image, bboxes):
-        # Copy the image to avoid changing the original
-        img_copy = np.copy(image)
-
-        # Loop over all bounding boxes and draw them on the image
-        for bbox in bboxes:
-
-            x,y,w,h = self.__convert_bbox_from_yolo_to_cv2(bbox)
-            # Draw the bounding box on the image
-            cv2.rectangle(img_copy, (x, y), (x+w, y+h), (0, 255, 0), 2)
-
-        # Display the image
-        plt.imshow(cv2.cvtColor(img_copy, cv2.COLOR_BGR2RGB))
-        plt.show()
+    def __delete_contents_of_folder(self, folder_path):
+        # Check if the path exists
+        if os.path.exists(folder_path):
+            # Iterate over all the files and subdirectories in the folder
+            for file_or_dir in os.listdir(folder_path):
+                file_or_dir_path = os.path.join(folder_path, file_or_dir)
+            
+                # Check if it is a file
+                if os.path.isfile(file_or_dir_path):
+                    # Delete the file
+                    os.remove(file_or_dir_path)
+                # Check if it is a subdirectory
+                elif os.path.isdir(file_or_dir_path):
+                    # Use shutil.rmtree to delete the subdirectory and its contents recursively
+                    shutil.rmtree(file_or_dir_path)
+    
+        else:
+            print(f"The path {folder_path} does not exist.")
 
     def __get_image_file_names(self,images_path:str)->list:
         """
@@ -91,8 +105,8 @@ class DataAugmentor:
         It also shifts class name back to the 0 (it was shifted in bbox augmentations; it had to be at te back)
         """
         # Create full path for the image and bounding box files
-        image_path = os.path.join(output_dir_path,'images',  'rotation' + str(int(rotation_index)) + image_file_name  )
-        bbox_path = os.path.join(output_dir_path,'labels', 'rotation'+ str(int(rotation_index)) + image_file_name.replace('.jpg', '.txt')  )
+        image_path = os.path.join(output_dir_path,  'rotation' + str(int(rotation_index)) + image_file_name  )
+        bbox_path = os.path.join(output_dir_path, 'rotation'+ str(int(rotation_index)) + image_file_name.replace('.jpg', '.txt')  )
 
         # Save the image
         cv2.imwrite(image_path, image)
@@ -122,7 +136,7 @@ class DataAugmentor:
             dest_path = os.path.join(output_dir, file)
             shutil.copy(src_path, dest_path)
                 
-    def copy_original_img_and_bboxes_to_output_dir(self, input_dir, output_dir):
+    def copy_original_img_and_bboxes(self, input_dir, output_dir):
         """
         Copies images and bboxes to output directory.
         Standart directory structure must be created beforehand for both output and input:
@@ -132,13 +146,13 @@ class DataAugmentor:
         """
 
         #get all image file names
-        image_file_names = self.__get_image_file_names(os.path.join( input_dir, "images") )
+        image_file_names = self.__get_image_file_names(input_dir )
 
         #Do stuff on all images/bboxes
         for img_name in image_file_names:
             # load the image with file name 
-            image = cv2.imread(os.path.join(input_dir, "images", img_name))
-            bboxes = self.__get_bboxes(os.path.join(input_dir, "labels"), img_name )
+            image = cv2.imread(os.path.join(input_dir, img_name))
+            bboxes = self.__get_bboxes(input_dir, img_name.replace('.jpg', '.txt') )
             
             self.__save_augmentated_img_and_bboxes_to_new_dir(output_dir, img_name, image=image, bboxes=bboxes )
             
@@ -150,14 +164,14 @@ class DataAugmentor:
         Saves them to new directory 
         """
         #get all image file names
-        image_file_names = self.__get_image_file_names(os.path.join( input_dir, "images") )
+        image_file_names = self.__get_image_file_names(input_dir)
 
         #Do stuff on all images/bboxes
         for img_name in image_file_names:
             
             # load the image with file name 
-            image = cv2.imread(os.path.join(input_dir, "images", img_name))
-            bboxes = self.__get_bboxes(os.path.join(input_dir, "labels"), img_name )
+            image = cv2.imread(os.path.join(input_dir, img_name))
+            bboxes = self.__get_bboxes(input_dir, img_name.replace('.jpg', '.txt') )
 
             # Apply rotations to the original image 
             for rotation_index in range(num_of_rotations):
@@ -175,14 +189,15 @@ class DataAugmentor:
                 
         print(f"Rotated images/bboxes from {input_dir} to {output_dir}")
                 
-    def export(self, input_dir:str, export_dir:str, train_size:float=0.8, val_size:float=0.1, test_size:float=0.1)-> None:
+    def split_roboflow_dataset(self, input_dir:str, export_dir:str, train_size:float=0.8, val_size:float=0.1, test_size:float=0.1)-> None:
+        
+        #robboflow splits images and bboxes
+        input_img_dir = os.path.join(input_dir, "images")
+        input_bboxes_dir = os.path.join(input_dir, "labels")
         
 
-        input_img_dir = os.path.join( input_dir, "images")
-        input_bboxes_dir = os.path.join(input_dir, "labels")
-
         if train_size + val_size + test_size != 1.0:
-            raise("You are an idiote")
+            raise Exception("You are an idiote")
         
         #get names of images and bboxes
         image_file_names = self.__get_image_file_names(input_img_dir )
@@ -203,11 +218,11 @@ class DataAugmentor:
         
         self.__copy_files_to_directory(image_train, input_dir=input_img_dir, output_dir= os.path.join(export_dir, "train")  )
         self.__copy_files_to_directory(image_test, input_dir=input_img_dir, output_dir= os.path.join(export_dir, "test") )
-        self.__copy_files_to_directory(image_val, input_dir=input_img_dir, output_dir= os.path.join(export_dir, "val") )
+        self.__copy_files_to_directory(image_val, input_dir=input_img_dir, output_dir= os.path.join(export_dir, "valid") )
         
         self.__copy_files_to_directory(text_train, input_dir=input_bboxes_dir, output_dir= os.path.join(export_dir, "train") )
         self.__copy_files_to_directory(text_test, input_dir=input_bboxes_dir, output_dir= os.path.join(export_dir, "test") )
-        self.__copy_files_to_directory(text_val, input_dir=input_bboxes_dir, output_dir= os.path.join(export_dir, "val") )
+        self.__copy_files_to_directory(text_val, input_dir=input_bboxes_dir, output_dir= os.path.join(export_dir, "valid") )
         
         print(f"Exported images/bboxes from {input_dir} to {export_dir}")
         
@@ -218,7 +233,7 @@ class DataAugmentor:
         #Do stuff on all images/bboxes
         for img_name in image_file_names:
             # load the image with file name 
-            image = cv2.imread(os.path.join(input_dir, "images", img_name))
+            image = cv2.imread(os.path.join(input_dir, img_name))
 
             # Convert the image to grayscale
             grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -243,14 +258,14 @@ class DataAugmentor:
         }
 
         #get all image file names
-        image_file_names = self.__get_image_file_names(os.path.join( input_dir, "images") )
+        image_file_names = self.__get_image_file_names(input_dir)
 
         #Do stuff on all images/bboxes
         for img_name in image_file_names:
         
             # load the image with file name 
-            image = cv2.imread(os.path.join(input_dir, "images", img_name))
-            bboxes = self.__get_bboxes(os.path.join(input_dir, "labels"), img_name )
+            image = cv2.imread(os.path.join(input_dir, img_name))
+            bboxes = self.__get_bboxes(input_dir, img_name.replace('.jpg', '.txt') )
 
             # Apply the chosen flip to the original image 
             transform = A.Compose(
@@ -267,27 +282,53 @@ class DataAugmentor:
         
         print(f"Flipped images/bboxes from {input_dir} to {output_dir}")
         
-       
+    def export_augmented_to_dataset(self, input_dir:str, output_dir:str):
+        """
+        Adss images back the datset
+        """
+        
+        image_file_names = self.__get_image_file_names(input_dir)
+        labels_file_names = [img_name.replace('.jpg', '.txt') for img_name in image_file_names]
+
+        self.__copy_files_to_directory(image_file_names, input_dir, output_dir)
+        self.__copy_files_to_directory(labels_file_names, input_dir, output_dir)
+        
+    def display_image_bboxes(self,image, bboxes):
+        # Copy the image to avoid changing the original
+        img_copy = np.copy(image)
+
+        # Loop over all bounding boxes and draw them on the image
+        for bbox in bboxes:
+
+            x,y,w,h = self.__convert_bbox_from_yolo_to_cv2(bbox)
+            # Draw the bounding box on the image
+            cv2.rectangle(img_copy, (x, y), (x+w, y+h), (0, 255, 0), 2)
+
+        # Display the image
+        plt.imshow(cv2.cvtColor(img_copy, cv2.COLOR_BGR2RGB))
+        plt.show()      
         
 
     
 def main_augmentor():
 
-    INPUT_DIR = "D:\Dokumenti\Python\Diplomska\Dataset\Corners\Anoted"
-    OUTPUT_DIR = "D:\Dokumenti\Python\Diplomska\Dataset\Corners\Augmeneted"
-    EXPORT_DIR = "D:\Dokumenti\Python\Diplomska\Dataset\Corners\Exporded"
+    ROBOFLOW_EXPORT_DIR = r"D:\Prenosi\Corner_Detection_Roboflow\data"
+    DATASET_DIR = r"D:\Dokumenti\Python\Diplomska\Dataset\Corners\Anoteded"
+    EXPORT_DIR = os.path.join(DATASET_DIR, "train")
+    TEMPORARY_FOLDER =   r"D:\Dokumenti\Python\Diplomska\Dataset\Corners\Augmeneted"  
+
+
     
     augmentor = DataAugmentor()
     
-    augmentor.copy_original_img_and_bboxes_to_output_dir(input_dir=INPUT_DIR, output_dir=OUTPUT_DIR)
+    augmentor.split_roboflow_dataset(input_dir=roboflow_export_dir, export_dir=dataset_dir )
+    augmentor.copy_original_img_and_bboxes(input_dir=export_dir , output_dir=temporary_folder)
+    augmentor.flip_imgbboxes(axis='horizontal', input_dir=temporary_folder, output_dir=temporary_folder)
+    augmentor.flip_imgbboxes(axis='vertical', input_dir=temporary_folder, output_dir=temporary_folder)
+    augmentor.rotate_imgbboxes(num_of_rotations=2, input_dir=temporary_folder, output_dir=temporary_folder)
     
-    augmentor.flip_imgbboxes(axis='horizontal', input_dir=OUTPUT_DIR, output_dir=OUTPUT_DIR)
-    augmentor.flip_imgbboxes(axis='vertical', input_dir=OUTPUT_DIR, output_dir=OUTPUT_DIR)
-    augmentor.rotate_imgbboxes(num_of_rotations=2, input_dir=OUTPUT_DIR, output_dir=OUTPUT_DIR)
-    
-    augmentor.apply_grayscale_to_all(OUTPUT_DIR)
 
-    augmentor.export(input_dir=OUTPUT_DIR, export_dir=EXPORT_DIR, train_size=0.8, val_size=0.2, test_size=0.0)
+    augmentor.export_augmented_to_dataset(input_dir=TEMPORARY_FOLDER, output_dir=EXPORT_DIR)
 
 
 

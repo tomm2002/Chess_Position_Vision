@@ -120,9 +120,9 @@ def create_mosaic(images, output_path):
 def test():
     
     TEST_IMAGE_PATH = r"D:\Dokumenti\Python\Diplomska\Scripts\Chess_Position_Vision\Chess_Position_Vision\Anoteded\test"
-    MODEL_NAME = "yolov8n_corners_fixesdataset__epoch_version50"
+    MODEL_NAME = "yolov8n_corners_fixesdataset__epoch_version95"
     
-    model = model_tester(YOLO("runs/detect/yolov8n_corners_fixesdataset__epoch_version50/weights/best.pt"))
+    model = model_tester(YOLO("runs/detect/" + MODEL_NAME +  "/weights/best.pt"))
     
 
     
@@ -151,4 +151,4 @@ def test():
 
 if __name__ == "__main__":
 
-    train()
+    test()

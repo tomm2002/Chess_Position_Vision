@@ -1,3 +1,4 @@
+
 import numpy as np
 from cv2 import cuda
 from torch import device
@@ -9,6 +10,7 @@ import matplotlib.patches as patches
 import cv2
 from PIL import Image, ImageDraw
 from DataProcessor import main_augmentor
+import os 
 
 def get_gpu_memory_info():
     if torch.cuda.is_available():
@@ -27,7 +29,7 @@ def train():
     # Load the model.
     model = YOLO('yolov8n.pt')
 
-    for num_of_epochs in range(10,30,5):
+    for num_of_epochs in range(55,100,10):
         print("___________________________________epoch:", num_of_epochs, "______________________________________")
         try:
             # Training.
@@ -35,8 +37,8 @@ def train():
                 data='data_corners.yaml',
                 imgsz=640,
                 epochs=num_of_epochs,
-                batch=4,
-                name='yolov8n_corners' +'_fixesdataset_' + '_epoch_' + str(num_of_epochs),
+                batch=16,
+                name='yolov8n_corners' +'_fixesdataset_' + '_epoch_' + 'version' + str(num_of_epochs),
                 plots=True,
             )
         except Exception as e:
@@ -57,7 +59,7 @@ def calculate_center(x_min, y_min, x_max, y_max):
     center_y = (y_min + y_max) / 2
     return center_x, center_y
     
-def draw_bbox_with_center_on_image(image, bboxes, box_colour:str="red", box_width:int = 4, point_size:int = 10, point_colour:str="blue"):
+def draw_bbox_with_center_on_image(image, bboxes, box_colour:str="red", box_width:int = 4, point_size:int = 3, point_colour:str="blue"):
     
     draw = ImageDraw.Draw(image)
     
@@ -74,7 +76,8 @@ def draw_bbox_with_center_on_image(image, bboxes, box_colour:str="red", box_widt
         
     
     # Display the image with bounding boxes
-    image.show()
+    #image.show()
+    return image
     
 class model_tester():
     def __init__(self, model):
@@ -91,23 +94,53 @@ class model_tester():
         # Iterate through the list of results and draw bounding boxes on the image
         for result in results:
             bounding_boxes = result.boxes  # Get the bounding boxes
-            draw_bbox_with_center_on_image(image=image, bboxes=bounding_boxes)       
+            return draw_bbox_with_center_on_image(image=image, bboxes=bounding_boxes)      
+            
+def create_mosaic(images, output_path):
+    # Assuming all images have the same dimensions
+    height, width = images[0].size  # Use .size for PIL images
 
+    # Create a blank mosaic
+    mosaic_height = 4 * height
+    mosaic_width = 4 * width
+    mosaic = np.zeros((mosaic_height, mosaic_width, 3), dtype=np.uint8)
+
+    # Fill the mosaic with the provided images
+    for i in range(4):
+        for j in range(4):
+            index = i * 4 + j
+            if index < len(images):
+                # Convert PIL image to NumPy array
+                img_array = np.array(images[index])
+                mosaic[i * height:(i + 1) * height, j * width:(j + 1) * width, :] = img_array
+
+    # Save the mosaic image
+    cv2.imwrite(output_path, cv2.cvtColor(mosaic, cv2.COLOR_RGB2BGR))
 
 def test():
-
-
-    image_names = ['1.jpg', '2.jpg', '3.jpg', '4.jpg', '5.jpg', '6.jpg', '7.jpg', 'test1.jpg', 'test2.jpg', 'test3.jpg', 'test4.jpg', 'test5.jpg', 'test7.jpg']
     
-    for image in image_names:
-        
+    TEST_IMAGE_PATH = r"D:\Dokumenti\Python\Diplomska\Scripts\Chess_Position_Vision\Chess_Position_Vision\Anoteded\test"
+    MODEL_NAME = "yolov8n_corners_fixesdataset__epoch_version50"
+    
+    model = model_tester(YOLO("runs/detect/yolov8n_corners_fixesdataset__epoch_version50/weights/best.pt"))
+    
 
     
-        model1 = model_tester(YOLO("runs/detect/yolov8n_corners_fixesdataset__epoch_1010/weights/best.pt"))
-        model1.test_on_image(image)
+    all_images = [f for f in os.listdir(TEST_IMAGE_PATH ) if '.jpg' in f]
+        
+    images = all_images[:16]
+    
+    predicted_images = []
+    for image_name in images:
+        
+        image_path = os.path.join(TEST_IMAGE_PATH , image_name)
+    
+        predicted_images.append( model.test_on_image(image_path) )
+    create_mosaic(predicted_images, os.path.join("runs/detect", MODEL_NAME, "test_predictions.jpg") )
+
 
         
-    pass
+ 
 
 
 

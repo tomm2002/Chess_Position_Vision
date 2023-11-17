@@ -8,37 +8,19 @@ import matplotlib.patches as patches
 import cv2
 from PIL import Image, ImageDraw
 import numpy as np
+import os
 
 class SquareDetector():
     
     def __init__(self, model,  ):
         self.model = model
 
-    def __calculate_the_4th_point(self):
-
-
-        # Assuming you have 3D coordinates of points A, B, and C
-        A = np.array([x_A, y_A, z_A])
-        B = np.array([x_B, y_B, z_B])
-        C = np.array([x_C, y_C, z_C])
-
-        # Calculate vectors AB and AC
-        AB = B - A
-        AC = C - A
-
-        # Cross product to find the normal vector of the plane
-        normal_vector = np.cross(AB, AC)
-
-        # Assuming the fourth point lies along the AB vector
-        D = B + AB
-
-        # Print the coordinates of point D
-        print("Coordinates of point D:", D)
-
     def get_corners_cordinates(self, image_path:str, confidance:float=0.5, imgsz:int=640)-> list:
         
-        results = self.model.predict(image_path, imgsz=640, conf=0.5)
+
+        results = self.model.predict("1.jpg", imgsz=640, conf=0.4)
         
+
         bboxes = []
         for result in results:
             bboxes_formats = result.boxes
@@ -76,7 +58,8 @@ class SquareDetector():
         
             draw.ellipse([center_x - point_size, center_y - point_size, center_x + point_size, center_y + point_size], fill=point_colour)
           
-        image.show()
+        #image.show()
+        return image
 
 
     def calculate_center(self, x_min, y_min, x_max, y_max):
@@ -94,14 +77,44 @@ class SquareDetector():
         center_y = (y_min + y_max) / 2
         return center_x, center_y
 
+    def create_mosaic(images:list):
+
+
+
+        height, width, _ = images[0].shape
+
+        # Create a blank mosaic
+        mosaic = np.zeros((2 * height, 2 * width, 3), dtype=np.uint8)
+
+        # Fill the mosaic with the provided images
+        for i in range(2):
+            for j in range(2):
+                index = i * 2 + j
+                if index < len(images):
+                    mosaic[i * height:(i + 1) * height, j * width:(j + 1) * width, :] = images[index]
+
+        cv2.imwrite("test_predict.jpg", mosaic)
 
 def main():
     
-    sq_detector = SquareDetector(model=YOLO("runs/detect/yolov8n_corners_epoch_10/weights/best.pt") ) 
+    TEST_IMAGE_PATH = r"D:\Dokumenti\Python\Diplomska\Scripts\Chess_Position_Vision\Chess_Position_Vision\Anoteded\test"
+
+    sq_detector = SquareDetector(model=YOLO("runs/detect/yolov8n_corners_fixesdataset__epoch_version50") ) 
     
-    img_name = "1.jpg"
-    bboxes = sq_detector.get_corners_cordinates(image_path=img_name )
-    sq_detector.draw_bboxes_and_points(image_path='test2.jpg', bboxes=bboxes)
+    
+    all_images = [f for f in os.listdir(TEST_IMAGE_PATH ) if '.jpg' in f]
+        
+    images = all_images[:16]
+    
+    predicted_images = []
+    for image_name in images:
+        
+        image_path = os.path.join(TEST_IMAGE_PATH , image_name)
+        
+        bboxes = sq_detector.get_corners_cordinates(image_path=image_path )
+        predicted_images.append(sq_detector.draw_bboxes_and_points(image_path=image_path, bboxes=bboxes) )
+    
+    
 
 
 

@@ -10,30 +10,42 @@ from PIL import Image, ImageDraw
 import numpy as np
 import os
 
+
+
 class SquareDetector():
     
-    def __init__(self, model,  ):
+    def __init__(self, model ):
         self.model = model
 
-    def get_corners_cordinates(self, image_path:str, confidance:float=0.5, imgsz:int=640)-> list:
-        
+    def predict_bboxes(self, image_path:str, confidance:float=0.5, imgsz:int=640)-> list:
+        """
+        Returns list of bboxes
+        """
 
-        results = self.model.predict("1.jpg", imgsz=640, conf=0.4)
+        results = self.model.predict(image_path, imgsz=imgsz, conf=confidance)
         
-
         bboxes = []
         for result in results:
             bboxes_formats = result.boxes
 
             for bbox in bboxes_formats.xyxy:
                 x_min, y_min, x_max, y_max = bbox
-                center_x, center_y = self.calculate_center(x_min.item(), y_min.item(), x_max.item(), y_max.item() )
-                bboxes.append([center_x, center_y])
+                
+                bboxes.append([x_min.item(), y_min.item(), x_max.item(), y_max.item()])
+        return bboxes
 
-        return bboxes 
+    def get_center_points_from_bboxes(self, bboxes):
+        center_points = []
+        for bbox in bboxes:
+            x_min, y_min, x_max, y_max = bbox
+            center_x, center_y = self.calculate_center(x_min, y_min, x_max, y_max )
+            center_points.append([center_x, center_y])
+            
+        return center_points
+
     
     def draw_bboxes_and_points(self, image_path:str, bboxes:list, 
-                               box_colour:str="red", box_width:int = 4, point_size:int = 10, point_colour:str="blue"):
+                               box_colour:str="red", box_width:int = 4, point_size:int = 5, point_colour:str="blue", show_img = True):
         """
         Draw bounding boxes and points on an image.
 
@@ -58,9 +70,9 @@ class SquareDetector():
         
             draw.ellipse([center_x - point_size, center_y - point_size, center_x + point_size, center_y + point_size], fill=point_colour)
           
-        #image.show()
+        if show_img: image.show()
+        
         return image
-
 
     def calculate_center(self, x_min, y_min, x_max, y_max):
         """
@@ -77,42 +89,64 @@ class SquareDetector():
         center_y = (y_min + y_max) / 2
         return center_x, center_y
 
-    def create_mosaic(images:list):
+    def perspective_transform(self, image_path, src_pts):
+        image = cv2.imread('1.jpg')
+
+        # Define source points
 
 
+        # Define destination points
+        height, width = image.shape[:2]
 
-        height, width, _ = images[0].shape
+        # Define destination points based on the image size
+        dst_pts = np.array([[0, 0], [width, 0], [width, height], [0, height]], dtype='float32')
 
-        # Create a blank mosaic
-        mosaic = np.zeros((2 * height, 2 * width, 3), dtype=np.uint8)
+        # Get the perspective transform matrix
+        matrix = cv2.getPerspectiveTransform(src_pts, dst_pts)
 
-        # Fill the mosaic with the provided images
-        for i in range(2):
-            for j in range(2):
-                index = i * 2 + j
-                if index < len(images):
-                    mosaic[i * height:(i + 1) * height, j * width:(j + 1) * width, :] = images[index]
+        # Apply the perspective transformation
+        warped_image = cv2.warpPerspective(image, matrix, (width, height))
 
-        cv2.imwrite("test_predict.jpg", mosaic)
+        # Save the output
+        cv2.imwrite('output.jpg', warped_image)
+
+    def order_points(self, pts):
+        # Initialize a list of coordinates that will be ordered
+        # such that the first entry in the list is the top-left,
+        # the second entry is the top-right, the third is the
+        # bottom-right, and the fourth is the bottom-left
+        rect = np.zeros((4, 2), dtype = "float32")
+
+        # The top-left point will have the smallest sum, whereas
+        # the bottom-right point will have the largest sum
+        s = pts.sum(axis = 1)
+        rect[0] = pts[np.argmin(s)]
+        rect[2] = pts[np.argmax(s)]
+
+        # Now, compute the difference between the points, the
+        # top-right point will have the smallest difference,
+        # whereas the bottom-left will have the largest difference
+        diff = np.diff(pts, axis = 1)
+        rect[1] = pts[np.argmin(diff)]
+        rect[3] = pts[np.argmax(diff)]
+
+        # Return the ordered coordinates
+        return rect
+
 
 def main():
     
-    TEST_IMAGE_PATH = r"D:\Dokumenti\Python\Diplomska\Scripts\Chess_Position_Vision\Chess_Position_Vision\Anoteded\test"
+    IMAGE_PATH = "1.jpg"
 
-    sq_detector = SquareDetector(model=YOLO("runs/detect/yolov8n_corners_fixesdataset__epoch_version50") ) 
+    sq_detector = SquareDetector(model=YOLO("corner_model/weights/best.pt") ) 
     
     
-    all_images = [f for f in os.listdir(TEST_IMAGE_PATH ) if '.jpg' in f]
-        
-    images = all_images[:16]
+    bboxes = sq_detector.predict_bboxes(image_path=IMAGE_PATH)
     
-    predicted_images = []
-    for image_name in images:
-        
-        image_path = os.path.join(TEST_IMAGE_PATH , image_name)
-        
-        bboxes = sq_detector.get_corners_cordinates(image_path=image_path )
-        predicted_images.append(sq_detector.draw_bboxes_and_points(image_path=image_path, bboxes=bboxes) )
+    points = sq_detector.get_center_points_from_bboxes(bboxes)
+    points = sq_detector.order_points(np.array(points, dtype='float32'))
+
+    sq_detector.perspective_transform(IMAGE_PATH, points)
     
     
 
